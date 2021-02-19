@@ -1,4 +1,7 @@
+# IN PROGRESS.......
+
 # Othello (game) 
+
 A multiplayer game created using tcp server
 
 ## Installation (Linux)
