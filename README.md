@@ -20,6 +20,10 @@ $ sudo apt install libsdl2-ttf-dev
 $ sudo apt install libsdl2-image-dev
 ```
 
+```bash
+$ sudo apt install libsdl2-net-dev
+```
+
 ### 2. Boost Library (ASIO)
 
 ```bash

@@ -7,13 +7,18 @@
 #include <boost/asio/ts/internet.hpp>
 #include <boost/system/error_code.hpp>
 
-namespace asio = boost::asio;
-
-void network()
+namespace Reversi
 {
-    boost::system::error_code ec;
+    namespace asio = boost::asio;
 
-    asio::io_context context;
+    void network()
+    {
+        boost::system::error_code ec;
 
-    asio::ip::tcp::endpoint endpoint(asio::ip::make_address("93.184.216.34", ec), 80);
+        asio::io_context context;
+
+        asio::ip::tcp::endpoint endpoint(asio::ip::make_address("93.184.216.34", ec), 80);
+
+        // asio::ip
+    }
 }

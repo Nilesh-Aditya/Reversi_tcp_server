@@ -45,19 +45,18 @@ namespace Reversi
     bool image_texture::load_image(const std::string &path)
     {
         free();
-        SDL_Texture *new_texture = nullptr;
         SDL_Surface *load = IMG_Load(path.c_str());
 
         SDL_SetColorKey(load, SDL_TRUE, SDL_MapRGB(load->format, 0, 0xff, 0xff));
 
-        new_texture = SDL_CreateTextureFromSurface(g_renderer, load);
+        m_texture = SDL_CreateTextureFromSurface(g_renderer, load);
+        SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND);
 
         m_width = load->w;
         m_height = load->h;
 
         SDL_FreeSurface(load);
 
-        m_texture = new_texture;
         return m_texture != nullptr;
     }
 
@@ -66,8 +65,11 @@ namespace Reversi
         SDL_Rect renderQuad = {x, y, m_width, m_height};
 
         //Set clip rendering dimensions
-        if (clip != NULL)
+        if (clip != nullptr)
         {
+            // little debugging
+            // std::cout << "H : " << clip->w << std::endl;
+            // std::cout << "W : " << clip->h << std::endl;
             renderQuad.w = clip->w;
             renderQuad.h = clip->h;
         }
@@ -84,4 +86,11 @@ namespace Reversi
             m_texture = nullptr;
         }
     }
+
+    void load_media(image_texture &image, const std::string &path, SDL_Rect *clip, int x = 0, int y = 0)
+    {
+        image.load_image(path);
+        image.render(x, y, clip);
+    }
+
 } // namespace Reversi

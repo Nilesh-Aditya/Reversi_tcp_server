@@ -42,7 +42,7 @@ server.on('error', err => {
 })
 
 server.listen({
-    host: '192.168.1.64',
+    host: 'localhost',
     port: 8080,
     exclusive: true
 }, () => server.getConnections((err, count)=> console.log(count)));
