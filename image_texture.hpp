@@ -89,8 +89,8 @@ namespace Reversi
 
     void load_media(image_texture &image, const std::string &path, SDL_Rect *clip, int x = 0, int y = 0)
     {
-        image.load_image(path);
-        image.render(x, y, clip);
+        if (image.load_image(path))
+            image.render(x, y, clip);
     }
 
 } // namespace Reversi

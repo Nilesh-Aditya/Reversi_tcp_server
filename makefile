@@ -1,6 +1,5 @@
 #OBJS specifies which files to compile as part of the project
 OBJS = main.cpp
-DEBUG = practice.cpp
 
 #OBJ_NAME specifies the name of our exectuable
 OBJ_NAME = main
@@ -8,3 +7,14 @@ OBJ_NAME = main
 #This is the target that compiles our executable
 all : $(OBJS) 
 	g++ $(OBJS) -std=c++17 -w -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_net -lboost_iostreams -lboost_system -lboost_filesystem -o $(OBJ_NAME)
+
+
+#DEBUGGING PURPOSE
+DEBUG = practice.cpp
+
+#specifies the name of debug file
+DEBUG_NAME = practice
+
+# created for local debugging purposes
+debug: $(DEBUG)
+	g++ $(DEBUG) -std=c++17 -w -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_net -lboost_iostreams -lboost_system -lboost_filesystem -o $(DEBUG_NAME)
