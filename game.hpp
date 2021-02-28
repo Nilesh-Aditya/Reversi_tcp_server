@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iostream>
 #include "constants.hpp"
 #include "image_texture.hpp"

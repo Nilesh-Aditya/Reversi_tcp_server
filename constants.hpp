@@ -11,7 +11,7 @@ namespace Reversi
     static const uint32_t SCREEN_HEIGHT = 750u; // board size 640
     static const uint32_t SCREEN_WIDTH = 640u;  // extra height cause of quit and draw buttons
     static const uint32_t FPS = 30u;
-    static uint32_t PIECE_SIZE = SCREEN_WIDTH / 8;
+    static const uint32_t PIECE_SIZE = SCREEN_WIDTH / 8;
 
     std::vector<std::vector<int>> board(8, std::vector<int>(8, 0));
 

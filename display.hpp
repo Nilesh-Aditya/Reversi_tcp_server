@@ -18,6 +18,8 @@ namespace Reversi
     SDL_Window *g_window = nullptr;
     SDL_Texture *g_backbuffer = nullptr;
 
+    // renderer is initialised in image_texture.hpp
+
     image_texture bg_image; // board image (background image)
 
     void init()

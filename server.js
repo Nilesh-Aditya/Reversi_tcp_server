@@ -5,9 +5,9 @@ let clients = [];
 const server = net.createServer(conn => {
 
     conn.on('data', data => {
-        // server.getConnections((err, count)=> console.log(count))
-        // console.log(conn.localAddress + `:: ${conn.remotePort} :: ${conn.remoteFamily}`);
-        // conn.write('hello' + '\r\n');
+        server.getConnections((err, count)=> console.log(count))
+        console.log(conn.localAddress + `:: ${conn.remotePort} :: ${conn.remoteFamily}`);
+        conn.write('hello' + '\r\n');
         // setTimeout(() => {
         //     console.log('timeout');
         // }, 3000);
