@@ -3,15 +3,35 @@
 #include "image_texture.hpp"
 #include "constants.hpp"
 #include "game.hpp"
+#include "client.hpp"
+#include <array>
 
 namespace Reversi
 {
+    //  creating my client
+    CLIENT client;
+    void initialise_client(const std::string &s1, const std::string &s2)
+    {
+        client.connect();
+    }
 
+    // display functions
     bool quit = false;
     void init();
     void close();
     void event_manager();
-    // void load_media();
+    void mouse_event(SDL_Event &e);
+
+    // Get mouse positions (x, y)
+    std::array<int, 2> mouse_press(SDL_MouseButtonEvent &b)
+    {
+        int x{}, y{};
+        if (b.button == SDL_BUTTON_LEFT)
+        {
+            SDL_GetMouseState(&x, &y);
+        }
+        return {x, y};
+    }
 
     SDL_Surface *g_screenSurface = nullptr;
     SDL_Surface *g_currentSurface = nullptr;
@@ -21,6 +41,8 @@ namespace Reversi
     // renderer is initialised in image_texture.hpp
 
     image_texture bg_image; // board image (background image)
+
+    // init funtion
 
     void init()
     {
@@ -50,14 +72,10 @@ namespace Reversi
         SDL_Event e;
         while (!quit)
         {
-            if (SDL_PollEvent(&e) != 0)
+            while (SDL_PollEvent(&e) != 0)
             {
-                //User requests quit
-                if (e.type == SDL_QUIT)
-                {
-                    quit = true;
-                    close();
-                }
+                // checking mouse events (SDL quit inside mouse events)
+                mouse_event(e);
             }
             SDL_SetRenderTarget(g_renderer, g_backbuffer);
             SDL_RenderClear(g_renderer);
@@ -69,8 +87,39 @@ namespace Reversi
         }
     }
 
+    void mouse_event(SDL_Event &e)
+    {
+        //User requests quit
+        if (e.type == SDL_QUIT)
+        {
+            quit = true;
+            close();
+        }
+        if (e.type == SDL_MOUSEBUTTONDOWN)
+        {
+            auto [x, y] = mouse_press(e.button);
+            const int X = x / PIECE_SIZE;
+            const int Y = y / PIECE_SIZE;
+
+            if (X < 8 and Y < 8 and X >= 0 and Y >= 0)
+            {
+                if (players == Player::player1)
+                    piece = PIECES::BLACK;
+                else
+                    piece = PIECES::WHITE;
+                board[X][Y] = static_cast<uint8_t>(piece);
+            }
+            else
+            {
+                std::cout << "X : " << X << " Y : " << Y << '\n';
+            }
+        }
+    }
+
     void close()
     {
+        black_piece.free();
+        white_piece.free();
         bg_image.free();
         SDL_DestroyRenderer(g_renderer);
         SDL_DestroyWindow(g_window);
