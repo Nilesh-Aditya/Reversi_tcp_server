@@ -12,7 +12,7 @@ namespace Reversi
     CLIENT client;
     void initialise_client(const std::string &s1, const std::string &s2)
     {
-        client.connect();
+        client.init(s1, s2);
     }
 
     // display functions
@@ -84,6 +84,8 @@ namespace Reversi
             SDL_SetRenderTarget(g_renderer, nullptr);
             SDL_RenderCopy(g_renderer, g_backbuffer, nullptr, nullptr);
             SDL_RenderPresent(g_renderer);
+            // client.connect();
+            // connect client on a different thread
         }
     }
 

@@ -21,18 +21,17 @@ namespace Reversi
     {
     public:
         CLIENT();
-        void init();
+        void init(const std::string &s1, const std::string &s2); // init port and ip_address
         void connect();
-        void get_ip(const std::string &s) { this->ip_address = s; }
-        void get_port(const std::string &s) { this->port = s; }
-        std::string get_message();
-        std::string send_message();
+        bool error_handling();
+        bool check_message(tcp::socket &socket_);
         virtual ~CLIENT();
 
     private:
         std::string message;
         std::string port;
         std::string ip_address;
+        boost::system::error_code ec;
     };
 
     CLIENT::CLIENT()
@@ -43,33 +42,81 @@ namespace Reversi
     {
     }
 
+    void CLIENT::init(const std::string &s1, const std::string &s2)
+    {
+        port = s2;
+        ip_address = s1;
+    }
+
+    bool CLIENT::check_message(tcp::socket &socket_)
+    {
+        asio::streambuf buf;
+        asio::read_until(socket_, buf, "\n", ec);
+
+        if (!error_handling())
+            return false;
+
+        std::string data = asio::buffer_cast<const char *>(buf.data());
+        data.pop_back();
+        std::cout << data << std::endl;
+
+        if (data == "exit" || data == "EXIT" || data == "Exit")
+            return false;
+
+        return true;
+    }
+
+    bool CLIENT::error_handling()
+    {
+        if (ec)
+        {
+            std::cout << ec.message() << std::endl;
+            return false;
+        }
+        return true;
+    }
+
     void CLIENT::connect()
+    try
     {
         const int port_i = std::stoi(port);
-        boost::system::error_code ec;
 
         asio::io_context context;
 
-        tcp::endpoint endpoint(asio::ip::make_address("127.0.0.1", ec), port_i);
+        tcp::endpoint endpoint(asio::ip::make_address(ip_address, ec), port_i);
+        if (!error_handling())
+            return;
 
         asio::io_service io_service;
 
         tcp::socket socket_(io_service);
         socket_.connect(endpoint, ec);
 
-        asio::write(socket_, asio::buffer(message), ec);
-
-        asio::streambuf buf;
-        asio::read_until(socket_, buf, "\n", ec);
-
-        if (ec)
+        while (true)
         {
-            std::cout << ec.message() << std::endl;
-            return;
+            // input message
+            std::cin.clear();
+            message.clear();
+            std::getline(std::cin, message);
+            asio::write(socket_, asio::buffer(message), ec);
+            if (!error_handling())
+                return;
+
+            if (!error_handling())
+                return;
+            if (!check_message(socket_))
+                break;
         }
 
-        std::string data = asio::buffer_cast<const char *>(buf.data());
-
-        std::cout << data << std::endl;
+        if (!error_handling())
+            throw "boost client ec error has occurred  !!!";
+    }
+    catch (const char *c)
+    {
+        std::cout << c << std::endl;
+    }
+    catch (...)
+    {
+        std::cout << "UNEXPECTED ERROR HAS OCCURED" << std::endl;
     }
 }

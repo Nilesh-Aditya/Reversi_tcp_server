@@ -6,12 +6,14 @@ const server = net.createServer(conn => {
 
     conn.on('data', data => {
         server.getConnections((err, count)=> console.log(count))
-        console.log(conn.localAddress + `:: ${conn.remotePort} :: ${conn.remoteFamily}`);
-        conn.write('hello' + '\r\n');
+        // console.log(conn.localAddress + `:: ${conn.remotePort} :: ${conn.remoteFamily}`);
+        const l = data.toString();
+        console.log(l);
+        conn.write(l + '\n');
         // setTimeout(() => {
         //     console.log('timeout');
         // }, 3000);
-        conn.emit('newline', {data});
+        // conn.emit('newline', {data});
     });
 
     conn.on('newline', ({ data }) => {
