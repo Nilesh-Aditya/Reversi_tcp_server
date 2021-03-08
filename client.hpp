@@ -6,16 +6,24 @@
 
 #include <iostream>
 #include <string>
+#include <future>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 #include <boost/asio.hpp>
-#include <boost/asio/ts/buffer.hpp>
-#include <boost/asio/ts/internet.hpp>
-#include <boost/system/error_code.hpp>
+#include "constants.hpp"
+#include "color.hpp"
 
 namespace Reversi
 {
     namespace asio = boost::asio;
     namespace ip = boost::asio::ip;
     using tcp = ip::tcp;
+
+    namespace
+    {
+        int cnt = 0;
+    }
 
     class CLIENT
     {
@@ -24,14 +32,22 @@ namespace Reversi
         void init(const std::string &s1, const std::string &s2); // init port and ip_address
         void connect();
         bool error_handling();
-        bool check_message(tcp::socket &socket_);
+        void send_data(tcp::socket &);
+        void set_data(const std::string &msg);
+        std::string check_message(tcp::socket &socket_);
+        void start();
+        void exit();
         virtual ~CLIENT();
 
     private:
-        std::string message;
+        int id;
+        std::string m_message;
         std::string port;
         std::string ip_address;
+        std::string m_data;
         boost::system::error_code ec;
+        std::thread new_thread;
+        bool turn;
     };
 
     CLIENT::CLIENT()
@@ -42,38 +58,112 @@ namespace Reversi
     {
     }
 
-    void CLIENT::init(const std::string &s1, const std::string &s2)
+    inline void CLIENT::init(const std::string &s1, const std::string &s2)
     {
         port = s2;
         ip_address = s1;
     }
 
-    bool CLIENT::check_message(tcp::socket &socket_)
+    std::string CLIENT::check_message(tcp::socket &socket_)
+    try
     {
         asio::streambuf buf;
         asio::read_until(socket_, buf, "\n", ec);
 
         if (!error_handling())
-            return false;
+            return "false";
 
-        std::string data = asio::buffer_cast<const char *>(buf.data());
-        data.pop_back();
-        std::cout << data << std::endl;
+        std::string __data = asio::buffer_cast<const char *>(buf.data());
+        __data.pop_back();
+        std::cout << __data << std::endl;
 
-        if (data == "exit" || data == "EXIT" || data == "Exit")
-            return false;
+        if (__data == "1" && cnt == 0)
+            players = Player::player1;
+        if (__data == "2" && cnt == 0)
+            players = Player::player2;
 
-        return true;
+        cnt++; // cnt(int)=0 declared at the top
+
+        return __data;
+    }
+    catch (...)
+    {
+        std::cerr << magenta_fg << "MESSAGE READING ERROR!!!!" << reset << std::endl;
     }
 
-    bool CLIENT::error_handling()
+    inline void CLIENT::send_data(tcp::socket &socket_)
+    {
+        m_message = message;
+        asio::write(socket_, asio::buffer(message), ec);
+    }
+
+    void CLIENT::set_data(const std::string &msg)
+    try
+    {
+        message = msg;
+        m_message = message;
+
+        int X{}, Y{};
+
+        if (msg.length() >= 3)
+        {
+            X = msg[0] - '0';
+            Y = msg[1] - '0';
+        }
+        else
+        {
+            X = 100;
+            Y = 100;
+        }
+
+        Player temp = (players == Player::player1) ? Player::player2 : Player::player1;
+        if (X < 8 && X >= 0 && Y < 8 && Y >= 0)
+            board[X][Y] = static_cast<uint8_t>(temp);
+        else if (cnt == 1)
+        {
+            id = std::stoi(msg);
+
+            if (id == 1)
+                players = Player::player1;
+            else
+                players = Player::player2;
+
+            std::cout << green_fg << "CLIENTS HAVE CONNECTED SUCCESSFULLY" << reset << std::endl;
+        }
+        else
+            throw "INVALID DATA SEND";
+    }
+    catch (const char *c)
+    {
+        std::cerr << magenta_fg << c << reset << std::endl;
+    }
+    catch (...)
+    {
+        std::cout << red_fg << "OUT OF THE WORLD ERROR" << reset << std::endl;
+    }
+
+    inline bool CLIENT::error_handling()
     {
         if (ec)
         {
-            std::cout << ec.message() << std::endl;
+            std::cout << magenta_fg << '\n'
+                      << ec.message() << reset << std::endl;
             return false;
         }
         return true;
+    }
+
+    void CLIENT::start()
+    try
+    {
+        new_thread = std::thread([this] { connect(); });
+    }
+    catch (std::system_error &e)
+    {
+        std::cerr << red_fg << '\n'
+                  << e.what() << reset << std::endl;
+        std::cout << magenta_fg << "\nTHREAD START(start fn) ERROR INSIDE (CLIENT class)" << reset << '\n'
+                  << std::endl;
     }
 
     void CLIENT::connect()
@@ -85,38 +175,98 @@ namespace Reversi
 
         tcp::endpoint endpoint(asio::ip::make_address(ip_address, ec), port_i);
         if (!error_handling())
-            return;
+        {
+            throw "boost client ec error has occurred  !!!";
+        }
 
         asio::io_service io_service;
 
         tcp::socket socket_(io_service);
         socket_.connect(endpoint, ec);
 
-        while (true)
+        while (!end)
         {
-            // input message
-            std::cin.clear();
-            message.clear();
-            std::getline(std::cin, message);
-            asio::write(socket_, asio::buffer(message), ec);
-            if (!error_handling())
+
+            // std::async(std::launch::async, [this])
+
+            std::unique_lock<std::mutex> lk2(global_mutex);
+            global_status.wait(lk2, [] { return recv && !send; });
+
+            std::string temp = check_message(socket_); // getting data and checking the data
+
+            // if (temp.length() >= 3)
+
+            set_data(temp);
+
+            if (temp == "false")
+            {
+                throw "boost client ec error has occurred  !!!";
+            }
+            if (temp == "exit" || temp == "EXIT" || temp == "Exit" or end)
+            {
+                std::cout << green_fg << "Exited  the client !!! " << reset << std::endl;
                 return;
+            }
+
+            lk2.unlock();
+            // recv = false;
+            // send = true;
+
+            // std::async(std::launch::async, [this] {
+
+            // });
+            std::unique_lock<std::mutex> lk(global_mutex);
+            // m_message.clear();
+
+            global_status.wait(lk, [] { return !recv && send; });
+            // asio::write(socket_, asio::buffer(m_message), ec);
+            send_data(socket_);
+
+            lk.unlock();
+            recv = true;
+            send = false;
 
             if (!error_handling())
-                return;
-            if (!check_message(socket_))
-                break;
+            {
+                throw "boost client ec error has occurred  !!!";
+            }
         }
-
-        if (!error_handling())
-            throw "boost client ec error has occurred  !!!";
     }
     catch (const char *c)
     {
-        std::cout << c << std::endl;
+        std::cerr << red_fg << c << '\n'
+                  << reset << std::endl;
+        exit();
     }
     catch (...)
     {
-        std::cout << "UNEXPECTED ERROR HAS OCCURED" << std::endl;
+        std::cout << red_fg << "\nUNEXPECTED ERROR HAS OCCURED !!!\n"
+                  << reset << std::endl;
+        exit();
     }
+
+    void CLIENT::exit()
+    try
+    {
+        {
+            std::unique_lock<std::mutex> lk(global_mutex);
+            end = true;
+        }
+        global_status.notify_all();
+        new_thread.join();
+    }
+    catch (std::logic_error &e)
+    {
+        std::cerr << red_fg << '\n'
+                  << e.what() << reset << std::endl;
+    }
+    catch (...)
+    {
+        std::cout << magenta_fg << "EXIT(error)_" << reset;
+        std::cout << red_fg << "\nTrying to Exit thread without connecting it to first !!\n"
+                  << reset << std::endl;
+    }
+
+    //  creating my client
+    CLIENT client;
 }

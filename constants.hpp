@@ -2,7 +2,10 @@
 
 #include <cstdint>
 #include <vector>
+#include <mutex>
+#include <atomic>
 #include <memory>
+#include <condition_variable>
 
 namespace Reversi
 {
@@ -12,6 +15,21 @@ namespace Reversi
     static const uint32_t SCREEN_WIDTH = 640u;  // extra height cause of quit and draw buttons
     static const uint32_t FPS = 30u;
     static const uint32_t PIECE_SIZE = SCREEN_WIDTH / 8;
+
+    // mouse click event co-ordinates
+    std::array<int, 2> coordinates;
+
+    // thread constants
+    std::mutex global_mutex;
+    std::mutex files_lock;
+    std::condition_variable global_status;
+    std::atomic<bool> recv = true;
+    std::atomic<bool> send = false;
+    bool end = false;
+
+    // client constants
+    std::string message;
+    std::string data;
 
     std::vector<std::vector<int>> board(8, std::vector<int>(8, 0));
 

@@ -12,7 +12,6 @@
 #endif
 
 #include <string>
-#include "display.hpp"
 
 namespace Reversi
 {
@@ -78,7 +77,7 @@ namespace Reversi
         SDL_RenderCopy(g_renderer, m_texture, clip, &renderQuad);
     }
 
-    void image_texture::free(void)
+    inline void image_texture::free(void)
     {
         if (m_texture != nullptr)
         {

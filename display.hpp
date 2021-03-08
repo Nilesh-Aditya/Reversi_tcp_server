@@ -5,14 +5,46 @@
 #include "game.hpp"
 #include "client.hpp"
 #include <array>
+#include <thread>
 
 namespace Reversi
 {
-    //  creating my client
-    CLIENT client;
-    void initialise_client(const std::string &s1, const std::string &s2)
+    // not needed outside this header file
+    namespace
+    {
+        // Get mouse positions (x, y)
+        inline std::array<int, 2> mouse_press(SDL_MouseButtonEvent &b)
+        {
+            int x{}, y{};
+            if (b.button == SDL_BUTTON_LEFT)
+            {
+                SDL_GetMouseState(&x, &y);
+            }
+            return {x, y};
+        }
+
+        SDL_Surface *g_screenSurface = nullptr;
+        SDL_Surface *g_currentSurface = nullptr;
+        SDL_Window *g_window = nullptr;
+        SDL_Texture *g_backbuffer = nullptr;
+
+        // SDL renderer is instantiated in image_texture.hpp
+
+        image_texture bg_image; // board image (background image)
+    }
+
+    // initialising the client
+
+    inline void initialise_client(const std::string &s1, const std::string &s2)
     {
         client.init(s1, s2);
+
+        client.start();
+        // ftr = prms.get_future();
+        // thread_new = std::thread(&decltype(client)::connect, Reversi::client, std::move(prms));
+        // thread_new.join();
+        // std::string temp = ftr.get();
+        // std::cout << temp << std::endl;
     }
 
     // display functions
@@ -21,26 +53,6 @@ namespace Reversi
     void close();
     void event_manager();
     void mouse_event(SDL_Event &e);
-
-    // Get mouse positions (x, y)
-    std::array<int, 2> mouse_press(SDL_MouseButtonEvent &b)
-    {
-        int x{}, y{};
-        if (b.button == SDL_BUTTON_LEFT)
-        {
-            SDL_GetMouseState(&x, &y);
-        }
-        return {x, y};
-    }
-
-    SDL_Surface *g_screenSurface = nullptr;
-    SDL_Surface *g_currentSurface = nullptr;
-    SDL_Window *g_window = nullptr;
-    SDL_Texture *g_backbuffer = nullptr;
-
-    // renderer is initialised in image_texture.hpp
-
-    image_texture bg_image; // board image (background image)
 
     // init funtion
 
@@ -102,6 +114,14 @@ namespace Reversi
             auto [x, y] = mouse_press(e.button);
             const int X = x / PIECE_SIZE;
             const int Y = y / PIECE_SIZE;
+            std::unique_lock<std::mutex> lk(global_mutex);
+            coordinates = {X, Y};
+            send = true;
+            recv = false;
+            message = std::to_string(X) + std::to_string(Y);
+            lk.unlock();
+
+            global_status.notify_one();
 
             if (X < 8 and Y < 8 and X >= 0 and Y >= 0)
             {
@@ -109,6 +129,7 @@ namespace Reversi
                     piece = PIECES::BLACK;
                 else
                     piece = PIECES::WHITE;
+
                 board[X][Y] = static_cast<uint8_t>(piece);
             }
             else
@@ -120,6 +141,7 @@ namespace Reversi
 
     void close()
     {
+        client.exit();
         black_piece.free();
         white_piece.free();
         bg_image.free();
