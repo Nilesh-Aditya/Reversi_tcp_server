@@ -119,6 +119,7 @@ namespace Reversi
             send = true;
             recv = false;
             message = std::to_string(X) + std::to_string(Y);
+            std::cout << message << std::endl;
             lk.unlock();
 
             global_status.notify_one();

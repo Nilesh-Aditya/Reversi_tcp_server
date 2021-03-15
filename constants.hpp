@@ -9,12 +9,12 @@
 
 namespace Reversi
 {
-    static const uint32_t PADDING = 10u;
-    static const uint32_t BLOCK_SIZE = 105u;
-    static const uint32_t SCREEN_HEIGHT = 750u; // board size 640
-    static const uint32_t SCREEN_WIDTH = 640u;  // extra height cause of quit and draw buttons
-    static const uint32_t FPS = 30u;
-    static const uint32_t PIECE_SIZE = SCREEN_WIDTH / 8;
+    static constexpr const uint32_t PADDING = 10u;
+    static constexpr const uint32_t BLOCK_SIZE = 105u;
+    static constexpr const uint32_t SCREEN_HEIGHT = 750u; // board size 640
+    static constexpr const uint32_t SCREEN_WIDTH = 640u;  // extra height cause of quit and draw buttons
+    static constexpr const uint32_t FPS = 30u;
+    static constexpr const uint32_t PIECE_SIZE = SCREEN_WIDTH / 8;
 
     // mouse click event co-ordinates
     std::array<int, 2> coordinates;

@@ -8,7 +8,7 @@ let clientObj = {
 };
 
 function check_exit(check_data) {
-    if (check_data === 'exit' || check_data === 'Exit' || check_data === 'EXIT') {
+    if (check_data.includes('exit') || check_data.includes('Exit') || check_data.includes('EXIT')) {
         return true;
     }
     return false;
@@ -19,12 +19,11 @@ const server = net.createServer(conn => {
     conn.on('data', data => {
         server.getConnections((err, count)=> console.log(count))
         console.log(conn.localAddress + `:: ${conn.remotePort} :: ${conn.remoteFamily}`);
+
+        let checkData = data.toString();
+        // console.log(check_data);
         
-        let check_data1 = data.toString().slice(0, data.length -2);
-        let check_data2 = data.toString().slice(0, data.length -1);
-        console.log(check_data1);
-        
-        if (check_exit(check_data1) || check_exit(check_data2)) {
+        if (check_exit(checkData)) {
             console.log('Closing all the open clients....');
             for (let i = 0; i < clients.length; i++){
                 clients[i].write('exit');
@@ -47,16 +46,18 @@ const server = net.createServer(conn => {
     });
 
     conn.on('socket1', ({ data }) => {
-        clients[0].write(data.toString() + '\r');
+        console.log("socket 1 : " ,data);
+        clients[0].write(data.toString() + '\r\n');
     })
 
     conn.on('socket2', ({ data }) => {
-        clients[1].write(data.toString() + '\r');
+        console.log("socket 2 : " ,data);
+        clients[1].write(data.toString() + '\r\n');
     })
 
     conn.on('error', (err) => {
         clients.forEach(client => {
-            client.destroy();
+            client.end();
         });
     })
 
@@ -86,7 +87,7 @@ server.on('connection', (socket) => {
 
 server.on('error', err => {
     clients.forEach(client => {
-        client.destroy();
+        client.end();
     });
     console.log(err.message);
 })

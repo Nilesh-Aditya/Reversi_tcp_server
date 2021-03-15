@@ -16,13 +16,15 @@
 
 namespace Reversi
 {
-    namespace asio = boost::asio;
-    namespace ip = boost::asio::ip;
-    using tcp = ip::tcp;
-
     namespace
     {
-        int cnt = 0;
+        // shortening some namespaces
+
+        namespace asio = boost::asio;
+        namespace ip = boost::asio::ip;
+        using tcp = ip::tcp;
+
+        int cnt = 0; // keeping track of client runs
     }
 
     class CLIENT
@@ -75,7 +77,9 @@ namespace Reversi
 
         std::string __data = asio::buffer_cast<const char *>(buf.data());
         __data.pop_back();
+        __data.pop_back();
         std::cout << __data << std::endl;
+        std::cout << "Reading some data  :  : : please work" << std::endl;
 
         if (__data == "1" && cnt == 0)
             players = Player::player1;
@@ -107,8 +111,9 @@ namespace Reversi
 
         if (msg.length() >= 3)
         {
-            X = msg[0] - '0';
-            Y = msg[1] - '0';
+            int t1 = std::stoi(msg);
+            X = t1 / 10;
+            Y = t1 % 10;
         }
         else
         {
@@ -124,10 +129,17 @@ namespace Reversi
             id = std::stoi(msg);
 
             if (id == 1)
+            {
+                recv = true;
+                send = false;
                 players = Player::player1;
+            }
             else
+            {
+                recv = false;
+                send = true;
                 players = Player::player2;
-
+            }
             std::cout << green_fg << "CLIENTS HAVE CONNECTED SUCCESSFULLY" << reset << std::endl;
         }
         else
@@ -187,49 +199,62 @@ namespace Reversi
         while (!end)
         {
 
-            // std::async(std::launch::async, [this])
+            std::async(std::launch::async, [&] {
+                std::unique_lock<std::mutex> lk2(global_mutex);
 
-            std::unique_lock<std::mutex> lk2(global_mutex);
-            global_status.wait(lk2, [] { return recv && !send; });
+                global_status.wait(lk2, [] { return recv && !send; });
 
-            std::string temp = check_message(socket_); // getting data and checking the data
+                std::string temp = check_message(socket_); // getting data and checking the data
 
-            // if (temp.length() >= 3)
+                // if (temp.length() >= 3)
 
-            set_data(temp);
+                set_data(temp);
 
-            if (temp == "false")
-            {
-                throw "boost client ec error has occurred  !!!";
-            }
-            if (temp == "exit" || temp == "EXIT" || temp == "Exit" or end)
-            {
-                std::cout << green_fg << "Exited  the client !!! " << reset << std::endl;
-                return;
-            }
+                if (temp == "false")
+                {
+                    global_status.notify_all();
+                    throw "boost client ec error has occurred  !!!";
+                }
+                if (temp == "exit" || temp == "EXIT" || temp == "Exit" or end)
+                {
+                    global_status.notify_all();
+                    std::cout << green_fg << "Exited  the client !!! " << reset << std::endl;
+                    return;
+                }
 
-            lk2.unlock();
-            // recv = false;
-            // send = true;
+                lk2.unlock();
+                global_status.notify_one();
+                // recv = false;
+                // send = true;
+            });
 
-            // std::async(std::launch::async, [this] {
+            std::cout << "reached middle point : "
+                         "hello there "
+                      << std::endl;
 
-            // });
-            std::unique_lock<std::mutex> lk(global_mutex);
-            // m_message.clear();
+            std::async(std::launch::async, [&] {
+                std::unique_lock<std::mutex> lk(global_mutex);
+                // m_message.clear();
 
-            global_status.wait(lk, [] { return !recv && send; });
-            // asio::write(socket_, asio::buffer(m_message), ec);
-            send_data(socket_);
+                global_status.wait(lk, [] { return !recv && send; });
 
-            lk.unlock();
-            recv = true;
-            send = false;
+                // asio::write(socket_, asio::buffer(m_message), ec);
+                send_data(socket_);
 
-            if (!error_handling())
-            {
-                throw "boost client ec error has occurred  !!!";
-            }
+                recv = true;
+                send = false;
+
+                if (!error_handling())
+                {
+                    throw "boost client ec error has occurred  !!!";
+                }
+                lk.unlock();
+                global_status.notify_one();
+            });
+
+            std::cout << "reached end point  : "
+                         "hi bro"
+                      << std::endl;
         }
     }
     catch (const char *c)
@@ -251,6 +276,8 @@ namespace Reversi
         {
             std::unique_lock<std::mutex> lk(global_mutex);
             end = true;
+            recv = false;
+            send = false;
         }
         global_status.notify_all();
         new_thread.join();
