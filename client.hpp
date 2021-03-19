@@ -13,6 +13,7 @@
 #include <boost/asio.hpp>
 #include "constants.hpp"
 #include "color.hpp"
+#include "game.hpp"
 
 namespace Reversi
 {
@@ -32,12 +33,12 @@ namespace Reversi
     public:
         CLIENT();
         void init(const std::string &s1, const std::string &s2); // init port and ip_address
+        void start();
         void connect();
         bool error_handling();
         void send_data(tcp::socket &);
         void set_data(const std::string &msg);
         std::string check_message(tcp::socket &socket_);
-        void start();
         void exit();
         virtual ~CLIENT();
 
@@ -64,6 +65,19 @@ namespace Reversi
     {
         port = s2;
         ip_address = s1;
+    }
+
+    void CLIENT::start()
+    try
+    {
+        new_thread = std::thread([this] { connect(); });
+    }
+    catch (std::system_error &e)
+    {
+        std::cerr << red_fg << '\n'
+                  << e.what() << reset << std::endl;
+        std::cerr << magenta_fg << "\nTHREAD START(start fn) ERROR INSIDE (CLIENT class)" << reset << '\n'
+                  << std::endl;
     }
 
     std::string CLIENT::check_message(tcp::socket &socket_)
@@ -109,11 +123,12 @@ namespace Reversi
 
         int X{}, Y{};
 
-        if (msg.length() >= 3)
+        int t1 = std::stoi(msg);
+        if (t1 && cnt > 1)
         {
-            int t1 = std::stoi(msg);
             X = t1 / 10;
             Y = t1 % 10;
+            coordinates = {X, Y};
         }
         else
         {
@@ -121,9 +136,12 @@ namespace Reversi
             Y = 100;
         }
 
-        Player temp = (players == Player::player1) ? Player::player2 : Player::player1;
+        PIECES temp = (players == Player::player1) ? PIECES::WHITE : PIECES::BLACK;
         if (X < 8 && X >= 0 && Y < 8 && Y >= 0)
+        {
             board[X][Y] = static_cast<uint8_t>(temp);
+            check(temp, Y, X);
+        }
         else if (cnt == 1)
         {
             id = std::stoi(msg);
@@ -149,9 +167,14 @@ namespace Reversi
     {
         std::cerr << magenta_fg << c << reset << std::endl;
     }
+    catch (std::exception &e)
+    {
+        std::cerr << magenta_fg << e.what() << reset << std::endl;
+    }
     catch (...)
     {
-        std::cout << red_fg << "OUT OF THE WORLD ERROR" << reset << std::endl;
+        std::cerr << magenta_fg << "ERROR(SERVER__)" << std::endl;
+        std::cerr << red_fg << "SERVER IS NOT CONNECTED PROPERLY" << reset << std::endl;
     }
 
     inline bool CLIENT::error_handling()
@@ -163,19 +186,6 @@ namespace Reversi
             return false;
         }
         return true;
-    }
-
-    void CLIENT::start()
-    try
-    {
-        new_thread = std::thread([this] { connect(); });
-    }
-    catch (std::system_error &e)
-    {
-        std::cerr << red_fg << '\n'
-                  << e.what() << reset << std::endl;
-        std::cout << magenta_fg << "\nTHREAD START(start fn) ERROR INSIDE (CLIENT class)" << reset << '\n'
-                  << std::endl;
     }
 
     void CLIENT::connect()
@@ -202,11 +212,9 @@ namespace Reversi
             std::async(std::launch::async, [&] {
                 std::unique_lock<std::mutex> lk2(global_mutex);
 
-                global_status.wait(lk2, [] { return recv && !send; });
+                // global_status.wait(lk2, [] { return recv && !send; });
 
                 std::string temp = check_message(socket_); // getting data and checking the data
-
-                // if (temp.length() >= 3)
 
                 set_data(temp);
 
@@ -222,10 +230,10 @@ namespace Reversi
                     return;
                 }
 
+                if (end)
+                    return;
                 lk2.unlock();
                 global_status.notify_one();
-                // recv = false;
-                // send = true;
             });
 
             std::cout << "reached middle point : "
@@ -234,26 +242,27 @@ namespace Reversi
 
             std::async(std::launch::async, [&] {
                 std::unique_lock<std::mutex> lk(global_mutex);
-                // m_message.clear();
 
                 global_status.wait(lk, [] { return !recv && send; });
 
-                // asio::write(socket_, asio::buffer(m_message), ec);
                 send_data(socket_);
 
                 recv = true;
                 send = false;
+
+                if (end)
+                    return;
 
                 if (!error_handling())
                 {
                     throw "boost client ec error has occurred  !!!";
                 }
                 lk.unlock();
-                global_status.notify_one();
+                // global_status.notify_one();
             });
 
             std::cout << "reached end point  : "
-                         "hi bro"
+                         "hi "
                       << std::endl;
         }
     }
@@ -265,7 +274,7 @@ namespace Reversi
     }
     catch (...)
     {
-        std::cout << red_fg << "\nUNEXPECTED ERROR HAS OCCURED !!!\n"
+        std::cerr << red_fg << "\nUNEXPECTED ERROR HAS OCCURED !!!\n"
                   << reset << std::endl;
         exit();
     }
@@ -278,9 +287,11 @@ namespace Reversi
             end = true;
             recv = false;
             send = false;
+            message = "exit";
         }
-        global_status.notify_all();
+        // second_status.notify_all();
         new_thread.join();
+        global_status.notify_all();
     }
     catch (std::logic_error &e)
     {

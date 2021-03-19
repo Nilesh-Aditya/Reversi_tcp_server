@@ -40,11 +40,6 @@ namespace Reversi
         client.init(s1, s2);
 
         client.start();
-        // ftr = prms.get_future();
-        // thread_new = std::thread(&decltype(client)::connect, Reversi::client, std::move(prms));
-        // thread_new.join();
-        // std::string temp = ftr.get();
-        // std::cout << temp << std::endl;
     }
 
     // display functions
@@ -93,6 +88,12 @@ namespace Reversi
             SDL_RenderClear(g_renderer);
             load_media(bg_image, "./Assets/background.png", nullptr);
             load_pieces();
+
+            // loading quit button
+            {
+                load_media(bg_image, "./Assets/quit.png", nullptr, 1 * PIECE_SIZE, 7.2 * PIECE_SIZE);
+            }
+
             SDL_SetRenderTarget(g_renderer, nullptr);
             SDL_RenderCopy(g_renderer, g_backbuffer, nullptr, nullptr);
             SDL_RenderPresent(g_renderer);
@@ -114,6 +115,13 @@ namespace Reversi
             auto [x, y] = mouse_press(e.button);
             const int X = x / PIECE_SIZE;
             const int Y = y / PIECE_SIZE;
+            if (X >= 2 && X <= 5 && (Y == 8 || Y == 9))
+            {
+                std::cout << X << " " << Y << std::endl;
+                coordinates = {X, Y};
+                close();
+                return;
+            }
             std::unique_lock<std::mutex> lk(global_mutex);
             coordinates = {X, Y};
             send = true;
@@ -132,6 +140,7 @@ namespace Reversi
                     piece = PIECES::WHITE;
 
                 board[X][Y] = static_cast<uint8_t>(piece);
+                check(piece, Y, X);
             }
             else
             {
@@ -142,6 +151,16 @@ namespace Reversi
 
     void close()
     {
+        if (coordinates[0] >= 2 && coordinates[0] <= 7 && (coordinates[1] == 8 || coordinates[1] == 9))
+        {
+            std::cout << yellow_fg << "Game has been interrupted :::: "
+                                      " Game quit in the middle !!!"
+                      << std::endl;
+        }
+        else
+        {
+            declare_winner();
+        }
         client.exit();
         black_piece.free();
         white_piece.free();
@@ -151,6 +170,7 @@ namespace Reversi
         SDL_DestroyTexture(g_backbuffer);
         g_window = nullptr;
         g_renderer = nullptr;
+        g_backbuffer = nullptr;
         IMG_Quit();
         SDL_Quit();
     }

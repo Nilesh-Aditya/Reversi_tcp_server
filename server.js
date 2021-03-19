@@ -1,5 +1,5 @@
 const net = require('net');
-
+let cnt = 0;
 let clients = [];
 
 let clientObj = {
@@ -26,10 +26,10 @@ const server = net.createServer(conn => {
         if (check_exit(checkData)) {
             console.log('Closing all the open clients....');
             for (let i = 0; i < clients.length; i++){
-                clients[i].write('exit');
+                clients[i].write('exit\r\n');
             }
         }
-        else if (clients.length > 1) {
+        else if (clients.length > 1 && cnt > 2) {
             let index = clients.indexOf(conn);
             if (index == 0) {
                 conn.emit('socket2', { data });
@@ -39,8 +39,9 @@ const server = net.createServer(conn => {
             }
         }
         else {
-            conn.write('waiting for 2nd connection !!');
+            conn.write('waiting for 2nd connection !!\r\n');
         }
+        cnt += 1;
         // conn.emit('newline', {data});
 
     });
@@ -83,6 +84,7 @@ server.on('connection', (socket) => {
     socket.write(len.toString() + '\r\n');
 
     clientObj[clients.length] = socket;
+    cnt += 1;
 })
 
 server.on('error', err => {

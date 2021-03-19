@@ -13,7 +13,8 @@ namespace Reversi
     static constexpr const uint32_t BLOCK_SIZE = 105u;
     static constexpr const uint32_t SCREEN_HEIGHT = 750u; // board size 640
     static constexpr const uint32_t SCREEN_WIDTH = 640u;  // extra height cause of quit and draw buttons
-    static constexpr const uint32_t FPS = 30u;
+    static constexpr const uint32_t length = 8u;
+    static constexpr const uint32_t breadth = 8u;
     static constexpr const uint32_t PIECE_SIZE = SCREEN_WIDTH / 8;
 
     // mouse click event co-ordinates
@@ -23,15 +24,16 @@ namespace Reversi
     std::mutex global_mutex;
     std::mutex files_lock;
     std::condition_variable global_status;
+    std::condition_variable second_status;
     std::atomic<bool> recv = true;
     std::atomic<bool> send = false;
-    bool end = false;
+    std::atomic<bool> end = false;
 
     // client constants
     std::string message;
     std::string data;
 
-    std::vector<std::vector<int>> board(8, std::vector<int>(8, 0));
+    std::vector<std::vector<int>> board(breadth, std::vector<int>(length, 0));
 
     enum class Player : uint8_t
     {
@@ -47,6 +49,22 @@ namespace Reversi
         BLACK = 1u,
         WHITE = 2u
     };
+
+    void flip(PIECES &state)
+    {
+        if (state == PIECES::EMPTY)
+            return;
+        if (state == PIECES::BLACK)
+        {
+            state = PIECES::WHITE;
+            return;
+        }
+        if (state == PIECES::WHITE)
+        {
+            state = PIECES::BLACK;
+            return;
+        }
+    }
 
     PIECES piece = PIECES::EMPTY;
 } // namespace Reversi
