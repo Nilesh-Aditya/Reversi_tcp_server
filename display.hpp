@@ -1,11 +1,13 @@
 #pragma once
 
+// #include "moves.hpp"
 #include "image_texture.hpp"
 #include "constants.hpp"
 #include "game.hpp"
-#include "client.hpp"
+// #include "client.hpp"
 #include <array>
 #include <thread>
+#include "better_client.hpp"
 
 namespace Reversi
 {
@@ -35,11 +37,10 @@ namespace Reversi
 
     // initialising the client
 
-    inline void initialise_client(const std::string &s1, const std::string &s2)
+    inline void initialise_client(const std::string &ip_address, const std::string &port)
     {
-        client.init(s1, s2);
-
-        client.start();
+        client.init(ip_address, port);
+        client.start_recieve();
     }
 
     // display functions
@@ -97,8 +98,6 @@ namespace Reversi
             SDL_SetRenderTarget(g_renderer, nullptr);
             SDL_RenderCopy(g_renderer, g_backbuffer, nullptr, nullptr);
             SDL_RenderPresent(g_renderer);
-            // client.connect();
-            // connect client on a different thread
         }
     }
 
@@ -122,15 +121,14 @@ namespace Reversi
                 close();
                 return;
             }
-            std::unique_lock<std::mutex> lk(global_mutex);
+
             coordinates = {X, Y};
             send = true;
             recv = false;
-            message = std::to_string(X) + std::to_string(Y);
+            message = std::to_string(Y) + std::to_string(X);
             std::cout << message << std::endl;
-            lk.unlock();
-
-            global_status.notify_one();
+            client.send(message);
+            // client.recieve();
 
             if (X < 8 and Y < 8 and X >= 0 and Y >= 0)
             {
@@ -139,12 +137,12 @@ namespace Reversi
                 else
                     piece = PIECES::WHITE;
 
-                board[X][Y] = static_cast<uint8_t>(piece);
-                check(piece, Y, X);
+                board[Y][X] = static_cast<uint8_t>(piece);
             }
             else
             {
                 std::cout << "X : " << X << " Y : " << Y << '\n';
+                close();
             }
         }
     }
@@ -159,9 +157,9 @@ namespace Reversi
         }
         else
         {
-            declare_winner();
+            // declare_winner();
         }
-        client.exit();
+        // client.exit();
         black_piece.free();
         white_piece.free();
         bg_image.free();

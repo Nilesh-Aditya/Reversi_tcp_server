@@ -27,7 +27,7 @@ namespace Reversi
     std::condition_variable second_status;
     std::atomic<bool> recv = true;
     std::atomic<bool> send = false;
-    std::atomic<bool> end = false;
+    bool end = false;
 
     // client constants
     std::string message;
@@ -50,7 +50,7 @@ namespace Reversi
         WHITE = 2u
     };
 
-    void flip(PIECES &state)
+    inline void flip(PIECES &state)
     {
         if (state == PIECES::EMPTY)
             return;
