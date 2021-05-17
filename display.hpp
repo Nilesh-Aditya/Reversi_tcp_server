@@ -1,10 +1,7 @@
 #pragma once
-
-// #include "moves.hpp"
 #include "image_texture.hpp"
 #include "constants.hpp"
 #include "game.hpp"
-// #include "client.hpp"
 #include <array>
 #include <thread>
 #include "better_client.hpp"
