@@ -1,0 +1,12 @@
+{
+  "name": "project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node Server/server.js",
+    "debug-Server": "node Server/game.js"
+  },
+  "author": "Nilesh Aditya",
+  "license": "ISC"
+}

@@ -1,8 +1,20 @@
-# IN PROGRESS.......
-
-# Othello (game)
+# Othello (game) (Work In Progrss....)
 
 A multiplayer game created using tcp server
+
+<p>
+    <img align="center" src="Assets/gitimages/reversi.png"></img>
+</p>
+
+## Prerequisites
+
+### 1. C++17 Compiler
+
+### 2. SDL libc++
+
+### 3. Boost lib
+
+---
 
 ## Installation (Linux)
 
