@@ -1,4 +1,4 @@
-# Othello (game) (Work In Progrss....)
+# Othello (game)
 
 A multiplayer game created using tcp server
 
